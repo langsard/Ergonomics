@@ -2,16 +2,16 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0002
  * File       : js/renderer/canvas.js
  * ============================================================================
  *
- * Canvas rendering core.
+ * Canvas rendering core (extended).
  *
- * Responsible for:
- * - Canvas initialization
- * - Image/video rendering
- * - Coordinate scaling helpers
+ * Adds:
+ * - Frame scaling preservation
+ * - Image aspect ratio fitting
+ * - Render metadata tracking
  */
 
 import { CANVAS } from "../constants.js";
@@ -19,11 +19,9 @@ import { CANVAS } from "../constants.js";
 import { getElement } from "../utils.js";
 
 let canvas = null;
-
 let ctx = null;
 
 let currentWidth = CANVAS.WIDTH;
-
 let currentHeight = CANVAS.HEIGHT;
 
 /**
@@ -35,18 +33,12 @@ export function initializeCanvas() {
 
     ctx = canvas.getContext("2d");
 
-    resizeCanvas(
-        CANVAS.WIDTH,
-        CANVAS.HEIGHT
-    );
+    resizeCanvas(CANVAS.WIDTH, CANVAS.HEIGHT);
 
 }
 
 /**
  * Resizes canvas.
- *
- * @param {number} width
- * @param {number} height
  */
 export function resizeCanvas(width, height) {
 
@@ -63,17 +55,12 @@ export function resizeCanvas(width, height) {
  */
 export function clearCanvas() {
 
-    ctx.clearRect(
-        0,
-        0,
-        currentWidth,
-        currentHeight
-    );
+    ctx.clearRect(0, 0, currentWidth, currentHeight);
 
 }
 
 /**
- * Draws an image or video frame.
+ * Draws frame with aspect ratio preservation.
  *
  * @param {CanvasImageSource} source
  */
@@ -81,44 +68,63 @@ export function drawFrame(source) {
 
     clearCanvas();
 
+    if (!source) return;
+
+    const sourceWidth =
+        source.videoWidth ||
+        source.width;
+
+    const sourceHeight =
+        source.videoHeight ||
+        source.height;
+
+    if (!sourceWidth || !sourceHeight) {
+
+        ctx.drawImage(source, 0, 0, currentWidth, currentHeight);
+
+        return;
+
+    }
+
+    const scale = Math.min(
+        currentWidth / sourceWidth,
+        currentHeight / sourceHeight
+    );
+
+    const drawWidth = sourceWidth * scale;
+    const drawHeight = sourceHeight * scale;
+
+    const offsetX = (currentWidth - drawWidth) / 2;
+    const offsetY = (currentHeight - drawHeight) / 2;
+
     ctx.drawImage(
         source,
-        0,
-        0,
-        currentWidth,
-        currentHeight
+        offsetX,
+        offsetY,
+        drawWidth,
+        drawHeight
     );
 
 }
 
 /**
- * Returns canvas element.
- *
- * @returns {HTMLCanvasElement}
+ * Returns canvas.
  */
 export function getCanvas() {
 
     return canvas;
-
 }
 
 /**
- * Returns rendering context.
- *
- * @returns {CanvasRenderingContext2D}
+ * Returns context.
  */
 export function getContext() {
 
     return ctx;
-
 }
 
 /**
- * Converts normalized coordinates (0–1)
- * into canvas coordinates.
- *
- * @param {{x:number,y:number}} point
- * @returns {{x:number,y:number}}
+ * Converts normalized point to canvas space.
  */
 export function toCanvasPoint(point) {
 
@@ -126,13 +132,10 @@ export function toCanvasPoint(point) {
         x: point.x * currentWidth,
         y: point.y * currentHeight
     };
-
 }
 
 /**
- * Gets current canvas size.
- *
- * @returns {{width:number,height:number}}
+ * Returns canvas size.
  */
 export function getCanvasSize() {
 
@@ -140,5 +143,4 @@ export function getCanvasSize() {
         width: currentWidth,
         height: currentHeight
     };
-
 }
