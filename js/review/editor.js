@@ -2,16 +2,16 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0004
  * File       : js/review/editor.js
  * ============================================================================
  *
- * Manual landmark editing module.
+ * Manual landmark editing module (enhanced controller support).
  *
- * Responsible for:
- * - Selecting landmarks
- * - Updating landmark positions
- * - Maintaining original vs edited separation
+ * Updates:
+ * - Supports controller-driven updates
+ * - Ensures original landmarks remain immutable
+ * - Triggers state refresh-safe edits
  */
 
 import { state } from "../state.js";
@@ -30,9 +30,7 @@ export function initializeEditor() {
 }
 
 /**
- * Selects a landmark for editing.
- *
- * @param {number} index
+ * Selects a landmark.
  */
 export function selectLandmark(index) {
 
@@ -43,33 +41,29 @@ export function selectLandmark(index) {
 }
 
 /**
- * Applies updated coordinates to selected landmark.
- *
- * @param {number} x
- * @param {number} y
+ * Updates landmark position safely.
  */
 export function updateLandmark(x, y) {
 
     const idx = state.selectedLandmark;
 
-    if (idx < 0) {
-        return;
-    }
+    if (idx < 0) return;
 
-    if (!state.landmarksOriginal) {
-        return;
-    }
+    if (!state.landmarksOriginal) return;
 
     if (!state.landmarksEdited) {
 
-        state.landmarksEdited =
-            deepClone(state.landmarksOriginal);
+        state.landmarksEdited = deepClone(state.landmarksOriginal);
 
     }
 
+    const target = state.landmarksEdited[idx];
+
+    if (!target) return;
+
     state.landmarksEdited[idx] = {
 
-        ...state.landmarksEdited[idx],
+        ...target,
 
         x,
         y
