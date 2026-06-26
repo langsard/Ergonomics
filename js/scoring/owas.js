@@ -2,19 +2,15 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0002
  * File       : js/scoring/owas.js
  * ============================================================================
  *
- * OWAS scoring module (initial implementation).
+ * OWAS scoring module (refined rules).
  *
- * Responsible for:
- * - Converting pose interpretation + load input
- *   into OWAS classification
- *
- * This module must NOT:
- * - compute geometry
- * - interpret pose directly
+ * Updates:
+ * - Slightly more structured classification logic
+ * - Prepared for pose interpretation integration
  */
 
 import { state } from "../state.js";
@@ -22,25 +18,7 @@ import { state } from "../state.js";
 import { LOAD } from "../constants.js";
 
 /**
- * OWAS result structure.
- *
- * @typedef {{
- * back:number,
- * arms:number,
- * legs:number,
- * load:number,
- * code:string,
- * actionCategory:number,
- * verdict:string,
- * explanation:string
- * }} OWASResult
- */
-
-/**
  * Maps load category to OWAS load score.
- *
- * @param {number} loadCategory
- * @returns {number}
  */
 function mapLoad(loadCategory) {
 
@@ -63,43 +41,49 @@ function mapLoad(loadCategory) {
 }
 
 /**
- * Evaluates OWAS based on current state.
- *
- * NOTE:
- * Pose interpretation module will be added later.
- *
- * @returns {OWASResult}
+ * Computes OWAS classification.
  */
 export function evaluateOWAS() {
 
     const load = mapLoad(state.loadCategory);
 
+    const interpretation = state.interpretation;
+
     /**
-     * Placeholder structural classification rules.
+     * Base posture classification.
      *
-     * These are minimal deterministic defaults
-     * until pose interpretation module is introduced.
+     * NOTE:
+     * Interpretation module will later define:
+     * - back posture
+     * - arm position
+     * - leg position
      */
-    const back = 1;
-    const arms = 1;
-    const legs = 1;
+    const back = interpretation?.back || 1;
+    const arms = interpretation?.arms || 1;
+    const legs = interpretation?.legs || 1;
 
     const code = `${back}${arms}${legs}${load}`;
 
-    const actionCategory =
-        (back > 2 || load === 3)
-            ? 3
-            : 1;
+    /**
+     * Basic rule-based escalation.
+     */
+    let actionCategory = 1;
+
+    if (load === 3) {
+        actionCategory = 3;
+    }
+
+    if (back >= 3) {
+        actionCategory = Math.max(actionCategory, 3);
+    }
 
     let verdict = "Acceptable posture";
 
     if (actionCategory === 3) {
         verdict = "Corrective action required soon";
+    } else if (actionCategory === 2) {
+        verdict = "Corrective action required in near future";
     }
-
-    const explanation =
-        "OWAS computed from current load category. " +
-        "Posture classification will be refined in later commits.";
 
     const result = {
         back,
@@ -109,7 +93,8 @@ export function evaluateOWAS() {
         code,
         actionCategory,
         verdict,
-        explanation
+        explanation:
+            "OWAS classification based on current interpretation state."
     };
 
     state.owas = result;
