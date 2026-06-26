@@ -2,11 +2,12 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0002
+ * Commit     : 0003
  * File       : js/app.js
  * ============================================================================
  *
- * Adds rendering pipeline initialization and frame selection support.
+ * Pipeline integration:
+ * MediaPipe → Interpretation → OWAS → Render loop hook
  */
 
 import {
@@ -34,13 +35,32 @@ import {
 } from "./renderer/canvas.js";
 
 import {
-    initializeOverlay
+    initializeOverlay,
+    drawLandmarks,
+    highlightLandmark
 } from "./renderer/overlay.js";
 
+import {
+    initializePose,
+    estimatePose
+} from "./pose/mediapipe.js";
+
+import {
+    interpretPose
+} from "./pose/interpretation.js";
+
+import {
+    evaluateOWAS
+} from "./scoring/owas.js";
+
+import {
+    exportPdf
+} from "./report/pdf.js";
+
 /**
- * Application entry point.
+ * Entry point.
  */
-function initializeApplication() {
+async function initializeApplication() {
 
     wireUIEvents();
 
@@ -53,7 +73,7 @@ function initializeApplication() {
 }
 
 /**
- * Wires all UI events.
+ * UI events.
  */
 function wireUIEvents() {
 
@@ -67,33 +87,22 @@ function wireUIEvents() {
         .addEventListener("click", handleExport);
 
     document
-        .querySelectorAll(
-            `input[name="${ELEMENTS.LOAD_RADIO_NAME}"]`
-        )
-        .forEach(radio => {
+        .querySelectorAll(`input[name="${ELEMENTS.LOAD_RADIO_NAME}"]`)
+        .forEach(r => r.addEventListener("change", handleLoadChange));
 
-            radio.addEventListener("change", handleLoadChange);
-
-        });
-
-    /**
-     * Frame selection
-     */
     getElement(ELEMENTS.FRAME_LIST)
         .addEventListener("click", handleFrameClick);
 
 }
 
 /**
- * Handles file input.
+ * File input.
  */
 async function handleFileInput(event) {
 
     const files = Array.from(event.target.files || []);
 
     state.files = files;
-
-    setStatus(`${files.length} file(s) loaded`);
 
     resetAnalysis();
 
@@ -107,6 +116,8 @@ async function handleFileInput(event) {
 
         drawFrame(state.image);
 
+        await runPosePipeline(state.image);
+
     } else if (first.type.startsWith("video/")) {
 
         state.video = await loadVideo(first);
@@ -118,45 +129,69 @@ async function handleFileInput(event) {
 }
 
 /**
- * Handles sampling (stub pipeline integration point).
+ * Runs full pose pipeline.
  */
-async function handleSampling() {
+async function runPosePipeline(input) {
 
-    if (!state.video) {
+    setStatus(STATUS.PROCESSING);
 
-        setStatus("No video loaded");
+    await initializePose();
+
+    const landmarks = await estimatePose(input);
+
+    state.landmarksOriginal = landmarks;
+    state.landmarksEdited = landmarks;
+
+    if (!landmarks) {
+
+        setStatus("No pose detected");
 
         return;
 
     }
 
-    setStatus(STATUS.PROCESSING);
+    state.interpretation = interpretPose(landmarks);
 
-    setTimeout(() => {
+    state.owas = evaluateOWAS();
 
-        setStatus("Sampling ready (pipeline stage 3)");
+    drawLandmarks(landmarks);
 
-    }, 250);
+    if (state.selectedLandmark >= 0) {
+
+        highlightLandmark(
+            landmarks[state.selectedLandmark]
+        );
+
+    }
+
+    setStatus(STATUS.READY);
 
 }
 
 /**
- * Handles export.
+ * Sampling.
+ */
+async function handleSampling() {
+
+    setStatus("Sampling stage reserved for next pipeline commit");
+
+}
+
+/**
+ * Export PDF.
  */
 async function handleExport() {
 
     setStatus(STATUS.PROCESSING);
 
-    setTimeout(() => {
+    await exportPdf();
 
-        setStatus("Export ready (pipeline stage 4)");
-
-    }, 250);
+    setStatus(STATUS.READY);
 
 }
 
 /**
- * Handles load category.
+ * Load category.
  */
 function handleLoadChange(event) {
 
@@ -173,7 +208,7 @@ function handleLoadChange(event) {
 }
 
 /**
- * Handles frame click selection.
+ * Frame selection.
  */
 function handleFrameClick(event) {
 
@@ -183,8 +218,6 @@ function handleFrameClick(event) {
 
     const index = Number(item.dataset.index);
 
-    if (isNaN(index)) return;
-
     state.currentFrameIndex = index;
 
     const frame = state.frames[index];
@@ -192,9 +225,10 @@ function handleFrameClick(event) {
     if (!frame) return;
 
     drawFrame(frame.image);
+
 }
 
 /**
- * Start app.
+ * Start.
  */
 initializeApplication();
