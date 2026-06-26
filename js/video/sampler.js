@@ -2,15 +2,16 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0002
  * File       : js/video/sampler.js
  * ============================================================================
  *
- * Video frame sampling module.
+ * Video frame sampling module (enhanced).
  *
- * Responsible for:
- * - Extracting frames from video
- * - Producing time-based samples
+ * Updates:
+ * - Safer seek handling
+ * - Deterministic frame extraction
+ * - Reduced race conditions
  */
 
 import { state } from "../state.js";
@@ -18,11 +19,34 @@ import { state } from "../state.js";
 import { VIDEO } from "../constants.js";
 
 /**
- * Samples frames from a video at fixed intervals.
+ * Waits for video seek completion.
+ *
+ * @param {HTMLVideoElement} video
+ * @returns {Promise<void>}
+ */
+function waitForSeek(video) {
+
+    return new Promise(resolve => {
+
+        const handler = () => {
+
+            video.removeEventListener("seeked", handler);
+
+            resolve();
+
+        };
+
+        video.addEventListener("seeked", handler);
+
+    });
+
+}
+
+/**
+ * Samples frames from a video.
  *
  * @param {HTMLVideoElement} video
  * @param {number} intervalSeconds
- * @returns {Promise<Array<{time:number, image:HTMLCanvasElement}>>}
  */
 export async function sampleVideo(video, intervalSeconds) {
 
@@ -43,34 +67,30 @@ export async function sampleVideo(video, intervalSeconds) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    let currentTime = 0;
+    let time = 0;
 
-    while (currentTime < duration) {
+    while (time < duration) {
 
-        video.currentTime = currentTime;
+        video.currentTime = time;
 
-        await new Promise(resolve => {
-
-            video.onseeked = () => resolve();
-
-        });
+        await waitForSeek(video);
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const frameCanvas = document.createElement("canvas");
-        const frameCtx = frameCanvas.getContext("2d");
+        const frame = document.createElement("canvas");
+        const fctx = frame.getContext("2d");
 
-        frameCanvas.width = canvas.width;
-        frameCanvas.height = canvas.height;
+        frame.width = canvas.width;
+        frame.height = canvas.height;
 
-        frameCtx.drawImage(canvas, 0, 0);
+        fctx.drawImage(canvas, 0, 0);
 
         frames.push({
-            time: currentTime,
-            image: frameCanvas
+            time,
+            image: frame
         });
 
-        currentTime += interval;
+        time += interval;
 
     }
 
