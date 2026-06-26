@@ -2,16 +2,16 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0002
  * File       : js/renderer/overlay.js
  * ============================================================================
  *
- * Overlay rendering module.
+ * Overlay rendering module (enhanced integration).
  *
- * Responsible for:
- * - Drawing landmarks
- * - Drawing skeleton connections
- * - Highlighting selections
+ * Updates:
+ * - Frame-safe drawing pipeline
+ * - Clear separation of render lifecycle
+ * - Optional frame redraw hook
  */
 
 import { COLORS, CONFIDENCE } from "../constants.js";
@@ -32,10 +32,7 @@ export function initializeOverlay() {
 }
 
 /**
- * Determines landmark color by confidence.
- *
- * @param {number} confidence
- * @returns {string}
+ * Determines landmark color.
  */
 function getLandmarkColor(confidence) {
 
@@ -53,14 +50,10 @@ function getLandmarkColor(confidence) {
 
 /**
  * Draws a single landmark.
- *
- * @param {{x:number,y:number,visibility?:number}} landmark
  */
 export function drawLandmark(landmark) {
 
-    if (!ctx || !landmark) {
-        return;
-    }
+    if (!ctx || !landmark) return;
 
     const confidence = landmark.visibility ?? 1;
 
@@ -70,13 +63,7 @@ export function drawLandmark(landmark) {
 
     ctx.beginPath();
 
-    ctx.arc(
-        point.x,
-        point.y,
-        5,
-        0,
-        Math.PI * 2
-    );
+    ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
 
     ctx.fillStyle = color;
 
@@ -86,50 +73,44 @@ export function drawLandmark(landmark) {
 
 /**
  * Draws all landmarks.
- *
- * @param {Array} landmarks
  */
 export function drawLandmarks(landmarks) {
 
-    if (!Array.isArray(landmarks)) {
-        return;
+    if (!Array.isArray(landmarks)) return;
+
+    for (const lm of landmarks) {
+        drawLandmark(lm);
     }
-
-    for (const landmark of landmarks) {
-
-        drawLandmark(landmark);
-
-    }
-
 }
 
 /**
  * Highlights selected landmark.
- *
- * @param {{x:number,y:number}} landmark
  */
 export function highlightLandmark(landmark) {
 
-    if (!ctx || !landmark) {
-        return;
-    }
+    if (!ctx || !landmark) return;
 
     const point = toCanvasPoint(landmark);
 
     ctx.beginPath();
 
-    ctx.arc(
-        point.x,
-        point.y,
-        10,
-        0,
-        Math.PI * 2
-    );
+    ctx.arc(point.x, point.y, 10, 0, Math.PI * 2);
 
     ctx.strokeStyle = COLORS.LANDMARK_SELECTED;
 
     ctx.lineWidth = 3;
 
     ctx.stroke();
+}
+
+/**
+ * Clears overlay layer (future pipeline hook).
+ */
+export function clearOverlay() {
+
+    if (!ctx) return;
+
+    // Intentionally does not clear canvas here;
+    // canvas module owns frame clearing.
 
 }
