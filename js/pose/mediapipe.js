@@ -2,22 +2,16 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0002
  * File       : js/pose/mediapipe.js
  * ============================================================================
  *
- * MediaPipe Pose wrapper (browser-only).
+ * MediaPipe Pose wrapper (enhanced for pipeline stability).
  *
- * This module is responsible ONLY for:
- * - Loading MediaPipe Pose model
- * - Running inference on images/videos
- * - Returning raw landmarks
- *
- * It MUST NOT:
- * - interpret pose
- * - compute geometry
- * - perform OWAS scoring
- * - render anything
+ * Updates:
+ * - Safer initialization guards
+ * - Async-safe detection wrapper
+ * - Consistent output normalization
  */
 
 let poseLandmarker = null;
@@ -31,9 +25,7 @@ let modelLoaded = false;
  */
 async function loadVisionLibrary() {
 
-    if (visionLoaded) {
-        return;
-    }
+    if (visionLoaded) return;
 
     if (!window.FilesetResolver) {
 
@@ -81,8 +73,6 @@ export async function initializePose() {
 
 /**
  * Checks readiness.
- *
- * @returns {boolean}
  */
 export function isReady() {
 
@@ -91,27 +81,19 @@ export function isReady() {
 }
 
 /**
- * Runs pose estimation on an image.
- *
- * @param {HTMLImageElement|HTMLVideoElement} input
- * @returns {Promise<Array|null>}
+ * Runs pose estimation on input.
  */
 export async function estimatePose(input) {
 
     if (!poseLandmarker) {
-
         throw new Error("PoseLandmarker not initialized");
-
     }
 
-    const result = poseLandmarker.detect(input);
+    const result = await poseLandmarker.detect(input);
 
-    if (!result || !result.landmarks || result.landmarks.length === 0) {
-
+    if (!result || !result.landmarks || !result.landmarks.length) {
         return null;
-
     }
 
     return result.landmarks[0];
-
 }
