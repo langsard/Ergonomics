@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <title>Sit Tight</title>
+
+    <link
+        rel="stylesheet"
+        href="../css/style.css">
+
+</head>
+
+<body>
+
+    <header id="appHeader">
+
+        <div class="headerTitle">
+
+            <h1>Sit Tight</h1>
+
+            <span id="applicationVersion">
+                Version 1.0
+            </span>
+
+        </div>
+
+        <div
+            id="applicationStatus"
+            aria-live="polite">
+
+            Ready
+
+        </div>
+
+    </header>
+
+    <main id="applicationLayout">
+
+        <!-- ========================================================= -->
+        <!-- LEFT PANEL                                                 -->
+        <!-- ========================================================= -->
+
+        <aside
+            id="leftPanel"
+            class="panel">
+
+            <section class="panelSection">
+
+                <h2>Files</h2>
+
+                <input
+                    id="fileInput"
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple>
+
+            </section>
+
+            <section class="panelSection">
+
+                <h2>Video Sampling</h2>
+
+                <label for="samplingInterval">
+
+                    Interval (seconds)
+
+                </label>
+
+                <input
+                    id="samplingInterval"
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value="1">
+
+                <button
+                    id="sampleFramesButton"
+                    type="button">
+
+                    Sample Frames
+
+                </button>
+
+            </section>
+
+            <section class="panelSection">
+
+                <h2>Frames</h2>
+
+                <ul id="frameList">
+
+                </ul>
+
+            </section>
+
+        </aside>
+
+        <!-- ========================================================= -->
+        <!-- CENTER PANEL                                               -->
+        <!-- ========================================================= -->
+
+        <section id="canvasPanel">
+
+            <div id="canvasContainer">
+
+                <canvas
+                    id="imageCanvas"
+                    width="1280"
+                    height="720">
+
+                    Your browser does not support HTML5 Canvas.
+
+                </canvas>
+
+            </div>
+
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- RIGHT PANEL                                                -->
+        <!-- ========================================================= -->
+
+        <aside
+            id="rightPanel"
+            class="panel">
+
+            <section class="panelSection">
+
+                <h2>Review</h2>
+
+                <div id="selectedLandmark">
+
+                    No landmark selected
+
+                </div>
+
+            </section>
+
+            <section class="panelSection">
+
+                <h2>Load</h2>
+
+                <label>
+
+                    <input
+                        type="radio"
+                        name="loadCategory"
+                        value="1"
+                        checked>
+
+                    Less than 10 kg
+
+                </label>
+
+                <label>
+
+                    <input
+                        type="radio"
+                        name="loadCategory"
+                        value="2">
+
+                    10–20 kg
+
+                </label>
+
+                <label>
+
+                    <input
+                        type="radio"
+                        name="loadCategory"
+                        value="3">
+
+                    More than 20 kg
+
+                </label>
+
+            </section>
+
+            <section class="panelSection">
+
+                <h2>OWAS</h2>
+
+                <div id="owasResult">
+
+                    No assessment
+
+                </div>
+
+            </section>
+
+            <section class="panelSection">
+
+                <button
+                    id="exportPdfButton"
+                    type="button">
+
+                    Export PDF
+
+                </button>
+
+            </section>
+
+        </aside>
+
+    </main>
+
+    <!-- ============================================================= -->
+    <!-- THIRD-PARTY LIBRARIES                                         -->
+    <!-- ============================================================= -->
+
+    <script src="../libs/pdf-lib.min.js"></script>
+
+    <!-- ============================================================= -->
+    <!-- APPLICATION                                                   -->
+    <!-- ============================================================= -->
+
+    <script
+        type="module"
+        src="../js/app.js"></script>
+
+</body>
+
+</html>
