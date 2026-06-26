@@ -2,15 +2,11 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0003
  * File       : js/state.js
  * ============================================================================
  *
- * Global application state.
- *
- * This module is the single source of truth for runtime state.
- * State values may be modified by other modules, but the state
- * object itself must never be replaced.
+ * Global application state (extended for pose interpretation).
  */
 
 import {
@@ -18,123 +14,43 @@ import {
     REVIEW
 } from "./constants.js";
 
-/**
- * Global application state.
- */
 export const state = {
 
-    /**
-     * Files selected by the user.
-     *
-     * @type {File[]}
-     */
     files: [],
-
-    /**
-     * Sampled frames.
-     *
-     * Each entry will be populated by the
-     * video sampling module.
-     *
-     * @type {Array}
-     */
     frames: [],
-
-    /**
-     * Currently selected frame index.
-     *
-     * -1 indicates no frame selected.
-     *
-     * @type {number}
-     */
     currentFrameIndex: -1,
 
-    /**
-     * Current source image.
-     *
-     * @type {HTMLImageElement|null}
-     */
     image: null,
-
-    /**
-     * Current source video.
-     *
-     * @type {HTMLVideoElement|null}
-     */
     video: null,
 
-    /**
-     * Original landmarks returned by MediaPipe.
-     *
-     * Never modified.
-     *
-     * @type {Array|null}
-     */
     landmarksOriginal: null,
-
-    /**
-     * User edited landmarks.
-     *
-     * Initially identical to landmarksOriginal
-     * but may diverge during manual review.
-     *
-     * @type {Array|null}
-     */
     landmarksEdited: null,
 
     /**
-     * Cached geometry values.
+     * NEW: Pose interpretation result
      *
-     * Geometry module owns this object.
-     *
-     * @type {Object|null}
-     */
-    geometry: null,
-
-    /**
-     * Cached pose interpretation.
-     *
-     * Interpretation module owns this object.
-     *
-     * @type {Object|null}
+     * @type {{
+     * back:number,
+     * arms:number,
+     * legs:number
+     * }|null}
      */
     interpretation: null,
 
-    /**
-     * Cached OWAS result.
-     *
-     * @type {Object|null}
-     */
+    geometry: null,
+
     owas: null,
 
-    /**
-     * Selected landmark index.
-     *
-     * -1 indicates none selected.
-     *
-     * @type {number}
-     */
     selectedLandmark: -1,
 
-    /**
-     * Current review mode.
-     *
-     * @type {string}
-     */
     reviewMode: REVIEW.IDLE,
 
-    /**
-     * Selected manual load category.
-     *
-     * @type {number}
-     */
     loadCategory: LOAD.LIGHT
 
 };
 
 /**
- * Clears all analysis results while preserving
- * loaded files and user preferences.
+ * Clears analysis state (keeps loaded files).
  */
 export function resetAnalysis() {
 
@@ -161,7 +77,7 @@ export function resetAnalysis() {
 }
 
 /**
- * Clears the complete application state.
+ * Resets full application state.
  */
 export function resetApplication() {
 
