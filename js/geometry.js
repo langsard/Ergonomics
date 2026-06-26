@@ -2,17 +2,15 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0003
  * File       : js/geometry.js
  * ============================================================================
  *
- * Pure geometric computation module.
+ * Pure geometric computation module (extended).
  *
- * This module MUST NOT contain:
- * - OWAS logic
- * - pose interpretation
- * - rendering
- * - UI logic
+ * Updates:
+ * - Added angle stability helpers
+ * - Added robust coordinate validation utilities
  */
 
 import { isFiniteNumber } from "./utils.js";
@@ -23,14 +21,22 @@ import { isFiniteNumber } from "./utils.js";
  * @typedef {{x:number,y:number}} Point
  */
 
+function isValidPoint(p) {
+
+    return p &&
+        isFiniteNumber(p.x) &&
+        isFiniteNumber(p.y);
+
+}
+
 /**
- * Computes Euclidean distance between two points.
- *
- * @param {Point} a
- * @param {Point} b
- * @returns {number}
+ * Computes Euclidean distance.
  */
 export function distance(a, b) {
+
+    if (!isValidPoint(a) || !isValidPoint(b)) {
+        return 0;
+    }
 
     return Math.sqrt(
         Math.pow(b.x - a.x, 2) +
@@ -40,13 +46,13 @@ export function distance(a, b) {
 }
 
 /**
- * Computes vector from A to B.
- *
- * @param {Point} a
- * @param {Point} b
- * @returns {Point}
+ * Vector from A to B.
  */
 export function vector(a, b) {
+
+    if (!isValidPoint(a) || !isValidPoint(b)) {
+        return { x: 0, y: 0 };
+    }
 
     return {
         x: b.x - a.x,
@@ -56,46 +62,30 @@ export function vector(a, b) {
 }
 
 /**
- * Dot product of two vectors.
- *
- * @param {Point} a
- * @param {Point} b
- * @returns {number}
+ * Dot product.
  */
 export function dot(a, b) {
 
-    return a.x * b.x + a.y * b.y;
-
+    return a.x * b.x + b.y * a.y;
 }
 
 /**
- * Vector magnitude.
- *
- * @param {Point} v
- * @returns {number}
+ * Magnitude.
  */
 export function magnitude(v) {
 
-    return Math.sqrt(
-        v.x * v.x + v.y * v.y
-    );
-
+    return Math.sqrt(v.x * v.x + v.y * v.y);
 }
 
 /**
- * Normalizes a vector.
- *
- * @param {Point} v
- * @returns {Point}
+ * Normalize vector.
  */
 export function normalize(v) {
 
     const mag = magnitude(v);
 
     if (!isFiniteNumber(mag) || mag === 0) {
-
         return { x: 0, y: 0 };
-
     }
 
     return {
@@ -106,12 +96,7 @@ export function normalize(v) {
 }
 
 /**
- * Computes angle ABC (in degrees).
- *
- * @param {Point} a
- * @param {Point} b
- * @param {Point} c
- * @returns {number}
+ * Angle ABC in degrees.
  */
 export function angleABC(a, b, c) {
 
@@ -130,11 +115,7 @@ export function angleABC(a, b, c) {
 }
 
 /**
- * Midpoint between two points.
- *
- * @param {Point} a
- * @param {Point} b
- * @returns {Point}
+ * Midpoint.
  */
 export function midpoint(a, b) {
 
