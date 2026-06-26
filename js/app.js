@@ -2,12 +2,14 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0003
+ * Commit     : 0004
  * File       : js/app.js
  * ============================================================================
  *
- * Pipeline integration:
- * MediaPipe → Interpretation → OWAS → Render loop hook
+ * Full interaction wiring:
+ * - Canvas click selection
+ * - Landmark editing mode
+ * - Live re-render pipeline
  */
 
 import {
@@ -57,8 +59,17 @@ import {
     exportPdf
 } from "./report/pdf.js";
 
+import {
+    handleCanvasClick,
+    handleCanvasEdit
+} from "./review/controller.js";
+
+import {
+    initializeEditor
+} from "./review/editor.js";
+
 /**
- * Entry point.
+ * Entry.
  */
 async function initializeApplication() {
 
@@ -67,6 +78,10 @@ async function initializeApplication() {
     initializeCanvas();
 
     initializeOverlay();
+
+    initializeEditor();
+
+    attachCanvasEvents();
 
     setReadyStatus();
 
@@ -93,6 +108,62 @@ function wireUIEvents() {
     getElement(ELEMENTS.FRAME_LIST)
         .addEventListener("click", handleFrameClick);
 
+}
+
+/**
+ * Canvas interaction wiring.
+ */
+function attachCanvasEvents() {
+
+    const canvas = getElement(ELEMENTS.CANVAS);
+
+    canvas.addEventListener("click", (e) => {
+
+        handleCanvasClick(e, canvas);
+
+        rerender();
+
+    });
+
+    canvas.addEventListener("contextmenu", (e) => {
+
+        e.preventDefault();
+
+        handleCanvasEdit(e, canvas);
+
+        rerender();
+
+    });
+
+}
+
+/**
+ * Full rerender pipeline.
+ */
+function rerender() {
+
+    const frame =
+        state.image ||
+        (state.frames[state.currentFrameIndex]?.image);
+
+    if (!frame) return;
+
+    drawFrame(frame);
+
+    if (state.landmarksEdited || state.landmarksOriginal) {
+
+        const lm =
+            state.landmarksEdited ||
+            state.landmarksOriginal;
+
+        drawLandmarks(lm);
+
+        if (state.selectedLandmark >= 0) {
+
+            highlightLandmark(lm[state.selectedLandmark]);
+        }
+
+    }
 }
 
 /**
@@ -125,11 +196,10 @@ async function handleFileInput(event) {
         drawFrame(state.video);
 
     }
-
 }
 
 /**
- * Runs full pose pipeline.
+ * Pose pipeline.
  */
 async function runPosePipeline(input) {
 
@@ -147,34 +217,23 @@ async function runPosePipeline(input) {
         setStatus("No pose detected");
 
         return;
-
     }
 
     state.interpretation = interpretPose(landmarks);
 
     state.owas = evaluateOWAS();
 
-    drawLandmarks(landmarks);
-
-    if (state.selectedLandmark >= 0) {
-
-        highlightLandmark(
-            landmarks[state.selectedLandmark]
-        );
-
-    }
+    rerender();
 
     setStatus(STATUS.READY);
-
 }
 
 /**
- * Sampling.
+ * Sampling placeholder.
  */
 async function handleSampling() {
 
-    setStatus("Sampling stage reserved for next pipeline commit");
-
+    setStatus("Sampling reserved for future commit");
 }
 
 /**
@@ -187,11 +246,10 @@ async function handleExport() {
     await exportPdf();
 
     setStatus(STATUS.READY);
-
 }
 
 /**
- * Load category.
+ * Load change.
  */
 function handleLoadChange(event) {
 
@@ -204,7 +262,6 @@ function handleLoadChange(event) {
     ) {
         state.loadCategory = value;
     }
-
 }
 
 /**
@@ -226,9 +283,10 @@ function handleFrameClick(event) {
 
     drawFrame(frame.image);
 
+    rerender();
 }
 
 /**
- * Start.
+ * Start app.
  */
 initializeApplication();
