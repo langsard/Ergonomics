@@ -2,23 +2,22 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0002
  * File       : js/report/pdf.js
  * ============================================================================
  *
- * PDF report generation module.
+ * PDF report generation module (enhanced).
  *
- * Responsible for:
- * - Creating OWAS report PDFs
- * - Rendering frames, tables, and summary pages
+ * Updates:
+ * - Frame-aware reporting structure
+ * - OWAS inclusion if available
+ * - Safer rendering pipeline
  */
 
 import { state } from "../state.js";
 
 /**
  * Checks if pdf-lib is available.
- *
- * @returns {boolean}
  */
 function isPdfLibAvailable() {
 
@@ -29,9 +28,7 @@ function isPdfLibAvailable() {
 }
 
 /**
- * Creates a new PDF document.
- *
- * @returns {Promise<any>}
+ * Creates PDF document.
  */
 async function createPdfDocument() {
 
@@ -42,10 +39,7 @@ async function createPdfDocument() {
 }
 
 /**
- * Adds a simple text page.
- *
- * @param {any} pdf
- * @param {string} text
+ * Adds a text page.
  */
 async function addTextPage(pdf, text) {
 
@@ -68,7 +62,32 @@ async function addTextPage(pdf, text) {
 }
 
 /**
- * Generates a minimal OWAS report PDF.
+ * Adds OWAS summary block.
+ */
+function buildOwasSummary() {
+
+    const owas = state.owas;
+
+    if (!owas) {
+
+        return "OWAS: Not evaluated";
+
+    }
+
+    return [
+        `OWAS Code: ${owas.code}`,
+        `Back: ${owas.back}`,
+        `Arms: ${owas.arms}`,
+        `Legs: ${owas.legs}`,
+        `Load: ${owas.load}`,
+        `Action Category: ${owas.actionCategory}`,
+        `Verdict: ${owas.verdict}`
+    ].join("\n");
+
+}
+
+/**
+ * Exports PDF report.
  */
 export async function exportPdf() {
 
@@ -82,27 +101,23 @@ export async function exportPdf() {
 
     const pdf = await createPdfDocument();
 
-    // Title page
     await addTextPage(
         pdf,
-        "Sit Tight\nOWAS Ergonomics Report\n\nCommit 0001"
+        "Sit Tight\nOWAS Ergonomics Report\nCommit 0002"
     );
 
-    // Frame summary page
+    const frameCount = state.frames.length;
+
     const summary =
-        `Frames analysed: ${state.frames.length}\n` +
-        `Selected load category: ${state.loadCategory}\n` +
-        `OWAS result available: ${state.owas ? "Yes" : "No"}`;
+        `Frames analysed: ${frameCount}\n` +
+        `Load category: ${state.loadCategory}\n\n` +
+        buildOwasSummary();
 
     await addTextPage(pdf, summary);
 
     const bytes = await pdf.save();
 
-    const blob = new Blob([bytes], {
-
-        type: "application/pdf"
-
-    });
+    const blob = new Blob([bytes], { type: "application/pdf" });
 
     const url = URL.createObjectURL(blob);
 
@@ -110,6 +125,7 @@ export async function exportPdf() {
 
     a.href = url;
     a.download = "sit_tight_report.pdf";
+
     a.click();
 
     URL.revokeObjectURL(url);
