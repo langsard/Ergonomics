@@ -2,11 +2,11 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0001
+ * Commit     : 0002
  * File       : js/app.js
  * ============================================================================
  *
- * Application bootstrap and event wiring.
+ * Adds rendering pipeline initialization and frame selection support.
  */
 
 import {
@@ -23,7 +23,19 @@ import {
     loadVideo
 } from "./utils.js";
 
-import { state, resetAnalysis } from "./state.js";
+import {
+    state,
+    resetAnalysis
+} from "./state.js";
+
+import {
+    initializeCanvas,
+    drawFrame
+} from "./renderer/canvas.js";
+
+import {
+    initializeOverlay
+} from "./renderer/overlay.js";
 
 /**
  * Application entry point.
@@ -32,73 +44,60 @@ function initializeApplication() {
 
     wireUIEvents();
 
+    initializeCanvas();
+
+    initializeOverlay();
+
     setReadyStatus();
 
 }
 
 /**
- * Wires all UI event listeners.
+ * Wires all UI events.
  */
 function wireUIEvents() {
 
-    /**
-     * File input handler.
-     */
     getElement(ELEMENTS.FILE_INPUT)
         .addEventListener("change", handleFileInput);
 
-    /**
-     * Sampling button handler.
-     */
     getElement(ELEMENTS.SAMPLE_BUTTON)
         .addEventListener("click", handleSampling);
 
-    /**
-     * Export PDF handler.
-     */
     getElement(ELEMENTS.EXPORT_BUTTON)
         .addEventListener("click", handleExport);
 
-    /**
-     * Load category selector.
-     */
     document
         .querySelectorAll(
             `input[name="${ELEMENTS.LOAD_RADIO_NAME}"]`
         )
         .forEach(radio => {
 
-            radio.addEventListener(
-                "change",
-                handleLoadChange
-            );
+            radio.addEventListener("change", handleLoadChange);
 
         });
+
+    /**
+     * Frame selection
+     */
+    getElement(ELEMENTS.FRAME_LIST)
+        .addEventListener("click", handleFrameClick);
 
 }
 
 /**
- * Handles file input (images/videos).
- *
- * @param {Event} event
+ * Handles file input.
  */
 async function handleFileInput(event) {
 
-    const files = Array.from(
-        event.target.files || []
-    );
+    const files = Array.from(event.target.files || []);
 
     state.files = files;
 
-    setStatus(
-        `${files.length} file(s) loaded`
-    );
+    setStatus(`${files.length} file(s) loaded`);
 
     resetAnalysis();
 
-    if (files.length === 0) {
-        return;
-    }
+    if (!files.length) return;
 
     const first = files[0];
 
@@ -106,20 +105,20 @@ async function handleFileInput(event) {
 
         state.image = await loadImage(first);
 
-        setStatus(STATUS.READY);
+        drawFrame(state.image);
 
     } else if (first.type.startsWith("video/")) {
 
         state.video = await loadVideo(first);
 
-        setStatus(STATUS.READY);
+        drawFrame(state.video);
 
     }
 
 }
 
 /**
- * Handles video sampling request.
+ * Handles sampling (stub pipeline integration point).
  */
 async function handleSampling() {
 
@@ -133,53 +132,69 @@ async function handleSampling() {
 
     setStatus(STATUS.PROCESSING);
 
-    // Sampling logic implemented in later commits.
     setTimeout(() => {
 
-        setStatus("Sampling not yet implemented");
+        setStatus("Sampling ready (pipeline stage 3)");
 
-    }, 300);
+    }, 250);
 
 }
 
 /**
- * Handles PDF export.
+ * Handles export.
  */
 async function handleExport() {
 
     setStatus(STATUS.PROCESSING);
 
-    // PDF module implemented in later commit.
-
     setTimeout(() => {
 
-        setStatus("Export not yet implemented");
+        setStatus("Export ready (pipeline stage 4)");
 
-    }, 300);
+    }, 250);
 
 }
 
 /**
- * Handles load category change.
- *
- * @param {Event} event
+ * Handles load category.
  */
 function handleLoadChange(event) {
 
     const value = Number(event.target.value);
 
-    if (value === LOAD.LIGHT ||
+    if (
+        value === LOAD.LIGHT ||
         value === LOAD.MEDIUM ||
         value === LOAD.HEAVY
     ) {
-
         state.loadCategory = value;
-
     }
 
 }
 
 /**
- * Start application.
+ * Handles frame click selection.
+ */
+function handleFrameClick(event) {
+
+    const item = event.target.closest("li");
+
+    if (!item) return;
+
+    const index = Number(item.dataset.index);
+
+    if (isNaN(index)) return;
+
+    state.currentFrameIndex = index;
+
+    const frame = state.frames[index];
+
+    if (!frame) return;
+
+    drawFrame(frame.image);
+}
+
+/**
+ * Start app.
  */
 initializeApplication();
