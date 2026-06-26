@@ -2,33 +2,35 @@
  * ============================================================================
  * Sit Tight
  * Repository : Ergonomics
- * Commit     : 0002
+ * Commit     : 0005
  * File       : js/report/pdf.js
  * ============================================================================
  *
- * PDF report generation module (enhanced).
+ * PDF report generation module (final integration layer).
  *
  * Updates:
- * - Frame-aware reporting structure
- * - OWAS inclusion if available
- * - Safer rendering pipeline
+ * - Integrates analysis statistics
+ * - Adds worst frame summary
+ * - Prepares per-frame report structure hook
  */
 
 import { state } from "../state.js";
 
+import { buildAnalysisSummary } from "../analysis/statistics.js";
+
 /**
- * Checks if pdf-lib is available.
+ * Checks PDF library.
  */
 function isPdfLibAvailable() {
 
     return typeof window !== "undefined" &&
-           window.PDFLib &&
-           window.PDFLib.PDFDocument;
+        window.PDFLib &&
+        window.PDFLib.PDFDocument;
 
 }
 
 /**
- * Creates PDF document.
+ * Creates document.
  */
 async function createPdfDocument() {
 
@@ -39,7 +41,7 @@ async function createPdfDocument() {
 }
 
 /**
- * Adds a text page.
+ * Adds text page.
  */
 async function addTextPage(pdf, text) {
 
@@ -53,7 +55,7 @@ async function addTextPage(pdf, text) {
 
         x: 50,
         y: 780,
-        size: 12,
+        size: 11,
         font,
         color: rgb(0, 0, 0)
 
@@ -62,17 +64,13 @@ async function addTextPage(pdf, text) {
 }
 
 /**
- * Adds OWAS summary block.
+ * Builds OWAS summary.
  */
 function buildOwasSummary() {
 
     const owas = state.owas;
 
-    if (!owas) {
-
-        return "OWAS: Not evaluated";
-
-    }
+    if (!owas) return "OWAS: Not evaluated";
 
     return [
         `OWAS Code: ${owas.code}`,
@@ -87,33 +85,52 @@ function buildOwasSummary() {
 }
 
 /**
+ * Builds statistics block.
+ */
+function buildStatsBlock(summary) {
+
+    const dist = summary.distribution;
+
+    return [
+        `Total Frames: ${summary.totalFrames}`,
+        `Category 1: ${dist[1]}`,
+        `Category 2: ${dist[2]}`,
+        `Category 3: ${dist[3]}`,
+        `Category 4: ${dist[4]}`,
+        ``,
+        `Worst Frame Index: ${summary.worstFrame.index}`,
+        `Worst Category: ${summary.worstFrame.category ?? "N/A"}`
+    ].join("\n");
+}
+
+/**
  * Exports PDF report.
  */
 export async function exportPdf() {
 
     if (!isPdfLibAvailable()) {
-
         alert("PDF library not loaded");
-
         return;
-
     }
 
     const pdf = await createPdfDocument();
 
+    const summary = buildAnalysisSummary();
+
     await addTextPage(
         pdf,
-        "Sit Tight\nOWAS Ergonomics Report\nCommit 0002"
+        "Sit Tight\nOWAS Ergonomics Report\nCommit 0005"
     );
 
-    const frameCount = state.frames.length;
+    await addTextPage(
+        pdf,
+        buildStatsBlock(summary)
+    );
 
-    const summary =
-        `Frames analysed: ${frameCount}\n` +
-        `Load category: ${state.loadCategory}\n\n` +
-        buildOwasSummary();
-
-    await addTextPage(pdf, summary);
+    await addTextPage(
+        pdf,
+        buildOwasSummary()
+    );
 
     const bytes = await pdf.save();
 
